@@ -100,24 +100,33 @@ export async function GET(req: Request) {
 			}),
 		});
 
-		if (emailRes.error) {
+		if (!emailRes.ok) {
 			return Response.json(
 				{
 					ok: false,
-					error: emailRes.error,
+					message: 'One or more emails failed to send',
+					successes: emailRes.successes,
+					failures: emailRes.failures.map((f) => ({
+						to: f.to,
+						error: {
+							message: f.error?.message ?? 'Unknown error',
+							name: f.error?.name,
+							statusCode: f.error?.statusCode,
+						},
+					})),
 				},
-				{
-					status: emailRes.error.statusCode ?? 500,
-				},
+				//* upstream email provider failure
+				{ status: 502 },
 			);
 		}
 
-		return Response.json({
-			ok: true,
-			filename,
-			garageSheet: garageRes.data.opportunitiesData.length,
-			transpoSheet: transpoRes.data.opportunitiesData.length,
-		});
+		return Response.json(
+			{
+				ok: true,
+				successes: emailRes.successes,
+			},
+			{ status: 200 },
+		);
 	} catch (err: unknown) {
 		if (axios.isAxiosError(err)) {
 			//* Axios error (HTTP error, timeout, network issue)
