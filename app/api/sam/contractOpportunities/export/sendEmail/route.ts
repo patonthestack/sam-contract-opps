@@ -11,7 +11,12 @@ import { SamReportEmail } from '@/lib/email/templates/SamReportEmail';
 const PARKING_LOTS_SHEET_NAME = 'Parking Lots and Garages';
 const SPECIAL_NEEDS_TRANSPO_SHEET_NAME = 'Special Needs Transportation';
 
-export async function GET() {
+export async function GET(req: Request) {
+	const auth = req.headers.get('authorization');
+	if (auth !== `Bearer ${process.env.CRON_SECRET}`) {
+		return Response.json({ ok: false, error: 'Unauthorized' }, { status: 401 });
+	}
+
 	const now = new Date();
 	const postedFrom = addMonths(now, -1); //* 1 month ago
 	const postedTo = addMonths(now, 6); //* 6 months ahead

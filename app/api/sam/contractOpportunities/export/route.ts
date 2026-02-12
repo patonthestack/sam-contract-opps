@@ -6,7 +6,12 @@ import {
 } from '@/lib/utils/constants';
 import { samResponseToXlsxBuffer } from '@/lib/utils/excelUtils';
 
-export async function GET() {
+export async function GET(req: Request) {
+	const auth = req.headers.get('authorization');
+	if (auth !== `Bearer ${process.env.CRON_SECRET}`) {
+		return Response.json({ ok: false, error: 'Unauthorized' }, { status: 401 });
+	}
+
 	const now = new Date();
 	const postedFrom = addMonths(now, -1); //* 1 month ago
 	const postedTo = addMonths(now, 6); //* 6 months ahead
