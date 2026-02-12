@@ -92,7 +92,7 @@ const footer: React.CSSProperties = {
 };
 
 const logo: React.CSSProperties = {
-	height: '36px',
+	height: '72px',
 	width: 'auto',
 };
 
