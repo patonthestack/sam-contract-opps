@@ -3,7 +3,7 @@
 	"crons": [
 		{
 			"path": "/api/sam/contractOpportunities/export/sendEmail",
-			"schedule": "0 12 * * *"
+			"schedule": "0 12 * * 1-5"
 		}
 	]
 }
