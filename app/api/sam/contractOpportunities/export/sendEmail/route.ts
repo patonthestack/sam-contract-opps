@@ -1,15 +1,18 @@
 import axios from 'axios';
 import { addMonths, formatMMDDYYYY } from '@/lib/utils/helpers';
 import {
+	JANITORIAL_SERVICES_NAICS_CODE,
+	JANITORIAL_SHEET_NAME,
 	PARKING_AND_GARAGES_NAICS_CODE,
+	PARKING_LOTS_SHEET_NAME,
+	SPECIAL_NEEDS_TRANSPO_SHEET_NAME,
 	SPECIAL_NEEDS_TRANSPORTATION_NAICS_CODE,
+	TRANSPORTATION_NAICS_CODE,
+	TRANSPORTATION_SHEET_NAME,
 } from '@/lib/utils/constants';
 import { samResponseToXlsxBuffer } from '@/lib/utils/excelUtils';
 import { sendReportEmail } from '@/lib/utils/emailUtils';
 import { SamReportEmail } from '@/lib/email/templates/SamReportEmail';
-
-const PARKING_LOTS_SHEET_NAME = 'Parking Lots and Garages';
-const SPECIAL_NEEDS_TRANSPO_SHEET_NAME = 'Special Needs Transportation';
 
 export async function GET(req: Request) {
 	const auth = req.headers.get('authorization');
@@ -18,21 +21,31 @@ export async function GET(req: Request) {
 	}
 
 	const now = new Date();
-	const postedFrom = addMonths(now, -1); //* 1 month ago
-	const postedTo = addMonths(now, 6); //* 6 months ahead
+	const postedFrom = addMonths(now, -6); //* 6 months ago
+	const postedTo = addMonths(now, 1); //* 1 months ahead
+	const responseDeadlineFrom = addMonths(now, -1); //* 1 month ago
+	const responseDeadlineTo = addMonths(now, 6); //* 6 months ahead
 	const limit = 100;
 	const status = 'active';
 
-	//* Garage params
+	//* Garage NAICS
 	const garageNCode = PARKING_AND_GARAGES_NAICS_CODE;
 
-	//* Special Needs Transpo params
-	const transpoNCode = SPECIAL_NEEDS_TRANSPORTATION_NAICS_CODE;
+	//* Special Needs Transpo NAICS
+	const specialNeedsTranspoNCode = SPECIAL_NEEDS_TRANSPORTATION_NAICS_CODE;
+
+	//* Transportation NAICS
+	const transpoNCode = TRANSPORTATION_NAICS_CODE;
+
+	//* Janitorial Services NAICS
+	const janitorialNCode = JANITORIAL_SERVICES_NAICS_CODE;
 
 	const commonParams = {
 		api_key: process.env.SAM_API_KEY!,
 		postedFrom: formatMMDDYYYY(postedFrom),
 		postedTo: formatMMDDYYYY(postedTo),
+		rdlfrom: formatMMDDYYYY(responseDeadlineFrom),
+		rdlto: formatMMDDYYYY(responseDeadlineTo),
 		status,
 		limit,
 	};
@@ -42,28 +55,53 @@ export async function GET(req: Request) {
 		ncode: garageNCode,
 	};
 
+	const specialNeedsTranspoParams = {
+		...commonParams,
+		ncode: specialNeedsTranspoNCode,
+	};
+
 	const transpoParams = {
 		...commonParams,
 		ncode: transpoNCode,
 	};
 
+	const janitorialParams = {
+		...commonParams,
+		ncode: janitorialNCode,
+	};
+
 	try {
-		const [garageRes, transpoRes] = await Promise.all([
-			axios.get(process.env.SAM_API_URL!, {
-				params: garageParams,
-				headers: {
-					Accept: 'application/json',
-				},
-				timeout: 30_000,
-			}),
-			axios.get(process.env.SAM_API_URL!, {
-				params: transpoParams,
-				headers: {
-					Accept: 'application/json',
-				},
-				timeout: 30_000,
-			}),
-		]);
+		const [garageRes, specialNeedsTranspoRes, transpoRes, janitorialRes] =
+			await Promise.all([
+				axios.get(process.env.SAM_API_URL!, {
+					params: garageParams,
+					headers: {
+						Accept: 'application/json',
+					},
+					timeout: 30_000,
+				}),
+				axios.get(process.env.SAM_API_URL!, {
+					params: specialNeedsTranspoParams,
+					headers: {
+						Accept: 'application/json',
+					},
+					timeout: 30_000,
+				}),
+				axios.get(process.env.SAM_API_URL!, {
+					params: transpoParams,
+					headers: {
+						Accept: 'application/json',
+					},
+					timeout: 30_000,
+				}),
+				axios.get(process.env.SAM_API_URL!, {
+					params: janitorialParams,
+					headers: {
+						Accept: 'application/json',
+					},
+					timeout: 30_000,
+				}),
+			]);
 
 		const workbook = await samResponseToXlsxBuffer([
 			{
@@ -72,7 +110,15 @@ export async function GET(req: Request) {
 			},
 			{
 				name: SPECIAL_NEEDS_TRANSPO_SHEET_NAME,
+				data: specialNeedsTranspoRes.data.opportunitiesData,
+			},
+			{
+				name: TRANSPORTATION_SHEET_NAME,
 				data: transpoRes.data.opportunitiesData,
+			},
+			{
+				name: JANITORIAL_SHEET_NAME,
+				data: janitorialRes.data.opportunitiesData,
 			},
 		]);
 
@@ -94,6 +140,14 @@ export async function GET(req: Request) {
 					},
 					{
 						name: SPECIAL_NEEDS_TRANSPO_SHEET_NAME,
+						count: transpoRes.data.opportunitiesData.length,
+					},
+					{
+						name: TRANSPORTATION_SHEET_NAME,
+						count: transpoRes.data.opportunitiesData.length,
+					},
+					{
+						name: JANITORIAL_SHEET_NAME,
 						count: transpoRes.data.opportunitiesData.length,
 					},
 				],

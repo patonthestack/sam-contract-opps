@@ -74,7 +74,7 @@ const columns: OpportunityColumn[] = [
 	{ header: 'POC Phone', key: 'pocPhone', width: 16 },
 	{ header: 'POC Fax', key: 'pocFax', width: 16 },
 
-	{ header: 'UI Link', key: 'uiLink', width: 55 },
+	{ header: 'Link to Opportunity', key: 'uiLink', width: 55 },
 	{ header: 'Description Link', key: 'descriptionLink', width: 55 },
 	{ header: 'Additional Info Link', key: 'additionalInfoLink', width: 55 },
 
