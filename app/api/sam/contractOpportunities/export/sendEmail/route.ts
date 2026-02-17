@@ -21,10 +21,8 @@ export async function GET(req: Request) {
 	}
 
 	const now = new Date();
-	const postedFrom = addMonths(now, -6); //* 6 months ago
-	const postedTo = addMonths(now, 1); //* 1 months ahead
-	const responseDeadlineFrom = addMonths(now, -1); //* 1 month ago
-	const responseDeadlineTo = addMonths(now, 6); //* 6 months ahead
+	const postedFrom = addMonths(now, -3); //* 3 months ago
+	const postedTo = addMonths(now, 3); //* 3 months ahead
 	const limit = 100;
 	const status = 'active';
 
@@ -44,8 +42,6 @@ export async function GET(req: Request) {
 		api_key: process.env.SAM_API_KEY!,
 		postedFrom: formatMMDDYYYY(postedFrom),
 		postedTo: formatMMDDYYYY(postedTo),
-		rdlfrom: formatMMDDYYYY(responseDeadlineFrom),
-		rdlto: formatMMDDYYYY(responseDeadlineTo),
 		status,
 		limit,
 	};
