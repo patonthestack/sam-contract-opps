@@ -136,7 +136,7 @@ export async function GET(req: Request) {
 					},
 					{
 						name: SPECIAL_NEEDS_TRANSPO_SHEET_NAME,
-						count: transpoRes.data.opportunitiesData.length,
+						count: specialNeedsTranspoRes.data.opportunitiesData.length,
 					},
 					{
 						name: TRANSPORTATION_SHEET_NAME,
@@ -144,7 +144,7 @@ export async function GET(req: Request) {
 					},
 					{
 						name: JANITORIAL_SHEET_NAME,
-						count: transpoRes.data.opportunitiesData.length,
+						count: janitorialRes.data.opportunitiesData.length,
 					},
 				],
 			}),
