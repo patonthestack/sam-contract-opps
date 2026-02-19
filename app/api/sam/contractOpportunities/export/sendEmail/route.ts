@@ -21,7 +21,7 @@ export async function GET(req: Request) {
 	}
 
 	const now = new Date();
-	const postedFrom = addMonths(now, -3); //* 3 months ago
+	const postedFrom = addMonths(now, -2); //* 2 months ago
 	const postedTo = addMonths(now, 3); //* 3 months ahead
 	const limit = 100;
 	const status = 'active';
