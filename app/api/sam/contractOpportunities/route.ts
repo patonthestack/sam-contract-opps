@@ -1,27 +1,29 @@
 import axios from 'axios';
-import { samResponseToXlsxBuffer } from '@/lib/utils/excelUtils';
 import { fetchSamOpportunitySheets } from '@/lib/sam/fetchContractOpportunities';
 
 export async function GET() {
 	try {
 		const sheets = await fetchSamOpportunitySheets();
-		const arrayBuffer = await samResponseToXlsxBuffer(sheets);
+		const totalOpportunities = sheets.reduce(
+			(total, sheet) => total + sheet.data.length,
+			0,
+		);
 
-		//* Return as file download
-		const filename = `sam-contract-opportunities-${new Date().toISOString().slice(0, 10)}.xlsx`;
-
-		return new Response(arrayBuffer, {
-			status: 200,
-			headers: {
-				'Content-Type':
-					'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-				'Content-Disposition': `attachment; filename="${filename}"`,
-				'Cache-Control': 'no-store',
+		return Response.json(
+			{
+				ok: true,
+				totalOpportunities,
+				sheets,
 			},
-		});
+			{
+				status: 200,
+				headers: {
+					'Cache-Control': 'no-store',
+				},
+			},
+		);
 	} catch (err: unknown) {
 		if (axios.isAxiosError(err)) {
-			//* Axios error (HTTP error, timeout, network issue)
 			console.error('Axios Error', {
 				message: err.message,
 				status: err.response?.status,
@@ -34,7 +36,6 @@ export async function GET() {
 			);
 		}
 
-		//* Non-axios error (programming bug, runtime issue)
 		console.error('Unknown Error', err);
 
 		return Response.json({ error: 'Internal server error' }, { status: 500 });

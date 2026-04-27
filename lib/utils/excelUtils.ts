@@ -15,6 +15,11 @@ type OpportunityColumn = {
 	width?: number;
 };
 
+type RowColorScheme = {
+	fillColor: string;
+	fontColor: string;
+};
+
 //* Helper: normalize anything "nullish" to empty string for Excel cells
 function s(value: unknown): string {
 	if (value === null || value === undefined) return '';
@@ -42,6 +47,68 @@ function setHyperlink(cell: ExcelJS.Cell, url: string) {
 	} else {
 		cell.value = url;
 	}
+}
+
+function parseDate(value?: string | null): Date | null {
+	if (!value) return null;
+
+	const date = new Date(value);
+	if (Number.isNaN(date.getTime())) return null;
+
+	return date;
+}
+
+function isPastResponseDeadline(opp: SamOpportunity): boolean {
+	const responseDeadline = parseDate(opp.responseDeadLine);
+	if (!responseDeadline) return false;
+
+	const today = new Date();
+	today.setHours(0, 0, 0, 0);
+	responseDeadline.setHours(0, 0, 0, 0);
+
+	return responseDeadline < today;
+}
+
+function isAwardOpportunity(opp: SamOpportunity): boolean {
+	const typeText = `${opp.type ?? ''} ${opp.baseType ?? ''}`.toLowerCase();
+	return typeText.includes('award');
+}
+
+function getRowColorScheme(opp: SamOpportunity): RowColorScheme {
+	if (isPastResponseDeadline(opp)) {
+		return {
+			fillColor: 'FFFEE2E2',
+			fontColor: 'FF991B1B',
+		};
+	}
+
+	if (isAwardOpportunity(opp)) {
+		return {
+			fillColor: 'FFFEF3C7',
+			fontColor: 'FF92400E',
+		};
+	}
+
+	return {
+		fillColor: 'FFDCFCE7',
+		fontColor: 'FF166534',
+	};
+}
+
+function applyRowStyle(row: ExcelJS.Row, opp: SamOpportunity) {
+	const { fillColor, fontColor } = getRowColorScheme(opp);
+
+	row.eachCell({ includeEmpty: true }, (cell) => {
+		cell.fill = {
+			type: 'pattern',
+			pattern: 'solid',
+			fgColor: { argb: fillColor },
+		};
+		cell.font = {
+			...cell.font,
+			color: { argb: fontColor },
+		};
+	});
 }
 
 const columns: OpportunityColumn[] = [
@@ -136,7 +203,8 @@ function addOpportunitiesSheet(
 			resourceLinks: joinLines(opp.resourceLinks),
 		};
 
-		ws.addRow(row);
+		const worksheetRow = ws.addRow(row);
+		applyRowStyle(worksheetRow, opp);
 	}
 
 	//* Hyperlink single-link columns
