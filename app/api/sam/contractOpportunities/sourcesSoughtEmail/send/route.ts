@@ -1,3 +1,5 @@
+import { promises as fs } from 'node:fs';
+import path from 'node:path';
 import { Resend } from 'resend';
 
 type RequestBody = {
@@ -5,6 +7,15 @@ type RequestBody = {
 	subject: string;
 	html: string;
 	replyTo: string;
+	senderName: string;
+	senderEmail: string;
+	opportunity: {
+		title: string;
+		noticeId: string;
+		solicitationNumber?: string;
+		fullParentPathName?: string;
+		responseDeadLine?: string | null;
+	};
 };
 
 const resend = new Resend(process.env.RESEND_API_KEY!);
@@ -17,7 +28,16 @@ export async function POST(req: Request) {
 	try {
 		const body = (await req.json()) as RequestBody;
 
-		if (!body.to || !body.subject || !body.html || !body.replyTo) {
+		if (
+			!body.to ||
+			!body.subject ||
+			!body.html ||
+			!body.replyTo ||
+			!body.senderName ||
+			!body.senderEmail ||
+			!body.opportunity?.title ||
+			!body.opportunity?.noticeId
+		) {
 			return Response.json(
 				{ error: 'Missing required email fields' },
 				{ status: 400 },
@@ -45,12 +65,27 @@ export async function POST(req: Request) {
 			);
 		}
 
+		const capabilityStatementPath = path.join(
+			process.cwd(),
+			'templates/pdf/Tepnology-Capability-Statement.pdf',
+		);
+		const capabilityStatementBase64 = (
+			await fs.readFile(capabilityStatementPath)
+		).toString('base64');
+
 		const result = await resend.emails.send({
 			from: process.env.EMAIL_FROM!,
 			to: [body.to],
 			subject: body.subject,
 			html: body.html,
 			replyTo: body.replyTo,
+			attachments: [
+				{
+					filename: 'Tepnology-Capability-Statement.pdf',
+					content: capabilityStatementBase64,
+					contentType: 'application/pdf',
+				},
+			],
 		});
 
 		if (result.error) {

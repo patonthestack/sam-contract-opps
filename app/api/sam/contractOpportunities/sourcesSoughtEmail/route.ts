@@ -47,6 +47,7 @@ export async function POST(req: Request) {
 				ok: true,
 				subject,
 				html,
+				capabilityStatementFilename: 'Tepnology-Capability-Statement.pdf',
 			},
 			{
 				status: 200,

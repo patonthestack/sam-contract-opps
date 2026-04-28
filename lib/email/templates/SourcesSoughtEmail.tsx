@@ -44,7 +44,7 @@ export function SourcesSoughtEmail({
 						<img src={logoUrl} alt="Tepnology icon" style={logo} />
 						<div>
 							<p style={brandName}>Tepnology LLC</p>
-							<p style={brandTagline}>Capability introduction</p>
+							<p style={brandTagline}>Outreach and capability response</p>
 						</div>
 					</div>
 				</div>
@@ -59,8 +59,25 @@ export function SourcesSoughtEmail({
 
 				<p style={paragraph}>
 					We are interested in this requirement and would appreciate the
-					opportunity to share our capabilities and relevant experience.
+					opportunity to share our capabilities and relevant experience in
+					support of this effort.
 				</p>
+
+				<div style={detailCard}>
+					<p style={detailHeading}>Capability snapshot</p>
+					<p style={detailLine}>
+						<strong>Company:</strong> Tepnology LLC
+					</p>
+					<p style={detailLine}>
+						<strong>Focus:</strong> Government contracting support across
+						targeted service areas including parking, transportation, and
+						facility operations.
+					</p>
+					<p style={detailLine}>
+						<strong>What we can provide:</strong> Capability statement, relevant
+						experience, and additional background aligned to this requirement.
+					</p>
+				</div>
 
 				<div style={detailCard}>
 					<p style={detailHeading}>For reference</p>
@@ -85,7 +102,8 @@ export function SourcesSoughtEmail({
 
 				<p style={paragraph}>
 					Please let us know the best way to provide a capability statement or
-					any additional background your team would find helpful.
+					any additional background your team would find helpful for market
+					research and vendor review.
 				</p>
 
 				<p style={paragraph}>Thank you for your time and consideration.</p>

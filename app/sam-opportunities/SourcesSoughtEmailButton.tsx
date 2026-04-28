@@ -35,6 +35,8 @@ export function SourcesSoughtEmailButton({
 		return window.localStorage.getItem('sourcesSoughtSenderEmail') ?? '';
 	});
 	const [htmlDraft, setHtmlDraft] = useState('');
+	const [capabilityStatementFilename, setCapabilityStatementFilename] =
+		useState('');
 	const [subject, setSubject] = useState('');
 	const [isGenerating, setIsGenerating] = useState(false);
 	const [isSending, setIsSending] = useState(false);
@@ -87,11 +89,15 @@ export function SourcesSoughtEmailButton({
 				const payload = (await response.json()) as {
 					html: string;
 					subject: string;
+					capabilityStatementFilename?: string;
 				};
 
 				if (!cancelled) {
 					setHtmlDraft(payload.html);
 					setSubject(payload.subject);
+					setCapabilityStatementFilename(
+						payload.capabilityStatementFilename ?? '',
+					);
 				}
 			} catch {
 				if (!cancelled) {
@@ -143,6 +149,9 @@ export function SourcesSoughtEmailButton({
 						subject,
 						html: htmlDraft,
 						replyTo: senderEmail.trim(),
+						senderName: senderName.trim(),
+						senderEmail: senderEmail.trim(),
+						opportunity,
 					}),
 				},
 			);
@@ -176,7 +185,7 @@ export function SourcesSoughtEmailButton({
 				onClick={() => setIsOpen(true)}
 				className="cursor-pointer rounded-full bg-orange-500 px-5 py-3 text-center text-sm font-semibold text-white shadow-lg shadow-orange-500/15 transition hover:-translate-y-0.5 hover:bg-orange-400"
 			>
-				Draft intro email to POC
+				Draft outreach email to POC
 			</button>
 
 			{isOpen ? (
@@ -185,7 +194,7 @@ export function SourcesSoughtEmailButton({
 						<div className="flex items-start justify-between gap-4">
 							<div>
 								<p className="font-display text-2xl font-semibold text-slate-950">
-									Draft email to POC
+									Draft outreach email to POC
 								</p>
 								<p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">
 									Enter your Tepnology name and email to generate a branded HTML
@@ -241,6 +250,14 @@ export function SourcesSoughtEmailButton({
 									<span className="font-semibold text-slate-900">Subject:</span>{' '}
 									{subject || `Sources Sought Response - ${opportunity.title}`}
 								</p>
+								{capabilityStatementFilename ? (
+									<p>
+										<span className="font-semibold text-slate-900">
+											Attachment:
+										</span>{' '}
+										{capabilityStatementFilename}
+									</p>
+								) : null}
 							</div>
 
 							<div className="mt-5 rounded-[1.25rem] bg-[rgba(250,245,237,0.9)] p-3">

@@ -112,9 +112,9 @@ function getNoticeGuidance(type?: string, baseType?: string): NoticeGuidance {
 			statusLabel: 'Market research',
 			statusClassName: 'bg-blue-100 text-blue-800',
 			typeMeaning: 'This is usually early market research. The agency is gathering information, not asking for a full proposal yet.',
-			recommendedAction: 'Consider responding with capabilities, past performance, or interest to help position for a later bid.',
+			recommendedAction: 'Reach out to the point of contact, express interest, and share a capability statement or relevant background if requested.',
 			canSubmit: false,
-			templateButtonLabel: 'Draft intro email to POC',
+			templateButtonLabel: 'Draft outreach email to POC',
 		};
 	}
 
@@ -248,7 +248,7 @@ export default async function SamOpportunitiesPage() {
 					<div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
 						{[
 							['Solicitation', 'Usually open for bidding now'],
-							['Sources Sought', 'Early market research, not a full proposal'],
+							['Sources Sought', 'Best for outreach plus a capability statement'],
 							['Presolicitation', 'Likely coming soon, monitor for release'],
 							['Award Notice', 'Already awarded, no proposal to submit'],
 						].map(([label, text]) => (
