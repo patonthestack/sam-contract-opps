@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { fetchSamOpportunitySheets } from '@/lib/sam/fetchContractOpportunities';
+import { SourcesSoughtEmailButton } from './SourcesSoughtEmailButton';
 
 type NoticeGuidance = {
 	statusLabel: string;
@@ -76,6 +77,11 @@ function isPastDate(value?: string | null) {
 	return date < today;
 }
 
+function isSourcesSoughtOpportunity(type?: string, baseType?: string) {
+	const typeText = `${type ?? ''} ${baseType ?? ''}`.toLowerCase();
+	return typeText.includes('sources sought');
+}
+
 function getNoticeGuidance(type?: string, baseType?: string): NoticeGuidance {
 	const typeText = `${type ?? ''} ${baseType ?? ''}`.toLowerCase();
 
@@ -108,7 +114,7 @@ function getNoticeGuidance(type?: string, baseType?: string): NoticeGuidance {
 			typeMeaning: 'This is usually early market research. The agency is gathering information, not asking for a full proposal yet.',
 			recommendedAction: 'Consider responding with capabilities, past performance, or interest to help position for a later bid.',
 			canSubmit: false,
-			templateButtonLabel: 'Generate capability statement template',
+			templateButtonLabel: 'Draft intro email to POC',
 		};
 	}
 
@@ -164,6 +170,8 @@ function getNoticeGuidance(type?: string, baseType?: string): NoticeGuidance {
 
 export default async function SamOpportunitiesPage() {
 	const sheets = await fetchSamOpportunitySheets();
+	const sourcesSoughtSendEnabled =
+		process.env.SOURCES_SOUGHT_EMAIL_SEND_MODE === 'enabled';
 	const totalOpportunities = sheets.reduce(
 		(total, sheet) => total + sheet.data.length,
 		0,
@@ -353,6 +361,10 @@ export default async function SamOpportunitiesPage() {
 											opp.pointOfContact?.[0];
 										const isAward = isAwardOpportunity(opp.type, opp.baseType);
 										const responseDeadlinePassed = isPastDate(opp.responseDeadLine);
+										const isSourcesSought = isSourcesSoughtOpportunity(
+											opp.type,
+											opp.baseType,
+										);
 										const noticeGuidance = getNoticeGuidance(
 											opp.type,
 											opp.baseType,
@@ -518,15 +530,30 @@ export default async function SamOpportunitiesPage() {
 												</div>
 
 												<div className="mt-5 flex flex-col gap-3 sm:flex-row">
-													{noticeGuidance.templateButtonLabel ? (
-														<button
-															type="button"
-															aria-disabled="true"
-															className="cursor-not-allowed rounded-full bg-orange-500 px-5 py-3 text-center text-sm font-semibold text-white shadow-lg shadow-orange-500/15 transition hover:-translate-y-0.5 hover:bg-orange-400"
-															title="Template generation coming soon"
-														>
-															{noticeGuidance.templateButtonLabel}
-														</button>
+													{noticeGuidance.templateButtonLabel && primaryPoc?.email ? (
+														isSourcesSought ? (
+															<SourcesSoughtEmailButton
+																pocEmail={primaryPoc.email}
+																pocName={primaryPoc.fullName ?? undefined}
+																sendEnabled={sourcesSoughtSendEnabled}
+																opportunity={{
+																	title: opp.title,
+																	noticeId: opp.noticeId,
+																	solicitationNumber: opp.solicitationNumber,
+																	fullParentPathName: opp.fullParentPathName,
+																	responseDeadLine: opp.responseDeadLine,
+																}}
+															/>
+														) : (
+															<button
+																type="button"
+																aria-disabled="true"
+																className="cursor-not-allowed rounded-full bg-orange-500 px-5 py-3 text-center text-sm font-semibold text-white shadow-lg shadow-orange-500/15 transition hover:-translate-y-0.5 hover:bg-orange-400"
+																title="Template generation coming soon"
+															>
+																{noticeGuidance.templateButtonLabel}
+															</button>
+														)
 													) : null}
 													{opp.uiLink ? (
 														<a
