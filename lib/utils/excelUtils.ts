@@ -18,6 +18,7 @@ type OpportunityColumn = {
 type RowColorScheme = {
 	fillColor: string;
 	fontColor: string;
+	borderColor: string;
 };
 
 //* Helper: normalize anything "nullish" to empty string for Excel cells
@@ -79,6 +80,7 @@ function getRowColorScheme(opp: SamOpportunity): RowColorScheme {
 		return {
 			fillColor: 'FFFEE2E2',
 			fontColor: 'FF991B1B',
+			borderColor: 'FFFCA5A5',
 		};
 	}
 
@@ -86,17 +88,19 @@ function getRowColorScheme(opp: SamOpportunity): RowColorScheme {
 		return {
 			fillColor: 'FFFEF3C7',
 			fontColor: 'FF92400E',
+			borderColor: 'FFFCD34D',
 		};
 	}
 
 	return {
 		fillColor: 'FFDCFCE7',
 		fontColor: 'FF166534',
+		borderColor: 'FF86EFAC',
 	};
 }
 
 function applyRowStyle(row: ExcelJS.Row, opp: SamOpportunity) {
-	const { fillColor, fontColor } = getRowColorScheme(opp);
+	const { fillColor, fontColor, borderColor } = getRowColorScheme(opp);
 
 	row.eachCell({ includeEmpty: true }, (cell) => {
 		cell.fill = {
@@ -107,6 +111,33 @@ function applyRowStyle(row: ExcelJS.Row, opp: SamOpportunity) {
 		cell.font = {
 			...cell.font,
 			color: { argb: fontColor },
+		};
+		cell.border = {
+			top: { style: 'thin', color: { argb: borderColor } },
+			left: { style: 'thin', color: { argb: borderColor } },
+			bottom: { style: 'thin', color: { argb: borderColor } },
+			right: { style: 'thin', color: { argb: borderColor } },
+		};
+	});
+}
+
+function applyHeaderStyle(row: ExcelJS.Row) {
+	row.eachCell({ includeEmpty: true }, (cell) => {
+		cell.font = {
+			...cell.font,
+			bold: true,
+			color: { argb: 'FF0F172A' },
+		};
+		cell.fill = {
+			type: 'pattern',
+			pattern: 'solid',
+			fgColor: { argb: 'FFF8FAFC' },
+		};
+		cell.border = {
+			top: { style: 'thin', color: { argb: 'FFCBD5E1' } },
+			left: { style: 'thin', color: { argb: 'FFCBD5E1' } },
+			bottom: { style: 'medium', color: { argb: 'FF94A3B8' } },
+			right: { style: 'thin', color: { argb: 'FFCBD5E1' } },
 		};
 	});
 }
@@ -158,7 +189,7 @@ function addOpportunitiesSheet(
 	ws.columns = columns as ExcelJS.Column[];
 
 	//* Header formatting
-	ws.getRow(1).font = { bold: true };
+	applyHeaderStyle(ws.getRow(1));
 	ws.views = [{ state: 'frozen', ySplit: 1 }];
 
 	//* Add rows

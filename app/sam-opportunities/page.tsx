@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { fetchSamOpportunitySheets } from '@/lib/sam/fetchContractOpportunities';
+import type { SamOpportunity } from '@/types/sam/v2';
 import { SourcesSoughtEmailButton } from './SourcesSoughtEmailButton';
 
 type NoticeGuidance = {
@@ -168,11 +169,29 @@ function getNoticeGuidance(type?: string, baseType?: string): NoticeGuidance {
 	};
 }
 
+function sortByPreferredActionability(
+	left: SamOpportunity,
+	right: SamOpportunity,
+) {
+	const leftGuidance = getNoticeGuidance(left.type, left.baseType);
+	const rightGuidance = getNoticeGuidance(right.type, right.baseType);
+
+	if (leftGuidance.canSubmit !== rightGuidance.canSubmit) {
+		return leftGuidance.canSubmit ? -1 : 1;
+	}
+
+	return 0;
+}
+
 export default async function SamOpportunitiesPage() {
 	const sheets = await fetchSamOpportunitySheets();
 	const sourcesSoughtSendEnabled =
 		process.env.SOURCES_SOUGHT_EMAIL_SEND_MODE === 'enabled';
-	const totalOpportunities = sheets.reduce(
+	const totalGroups = sheets.reduce(
+		(total, sheet) => total + sheet.groups.length,
+		0,
+	);
+	const totalNotices = sheets.reduce(
 		(total, sheet) => total + sheet.data.length,
 		0,
 	);
@@ -219,16 +238,20 @@ export default async function SamOpportunitiesPage() {
 							</p>
 						</div>
 						<div className="rounded-[1.5rem] border border-slate-900/10 bg-[rgba(250,245,237,0.9)] p-5">
-							<p className="text-sm font-medium text-slate-500">Opportunities found</p>
+							<p className="text-sm font-medium text-slate-500">Opportunity groups</p>
 							<p className="mt-2 font-display text-3xl font-semibold text-slate-950">
-								{totalOpportunities}
+								{totalGroups}
+							</p>
+							<p className="mt-2 text-sm text-slate-500">
+								Grouped to keep related SAM notices together
 							</p>
 						</div>
 						<div className="rounded-[1.5rem] border border-slate-900/10 bg-[rgba(250,245,237,0.9)] p-5">
-							<p className="text-sm font-medium text-slate-500">Listings from</p>
-							<p className="mt-2 font-display text-2xl font-semibold text-slate-950">
-								SAM.gov
+							<p className="text-sm font-medium text-slate-500">SAM notices</p>
+							<p className="mt-2 font-display text-3xl font-semibold text-slate-950">
+								{totalNotices}
 							</p>
+							<p className="mt-2 text-sm text-slate-500">Including related notice versions</p>
 						</div>
 					</div>
 				</div>
@@ -305,7 +328,7 @@ export default async function SamOpportunitiesPage() {
 									<span
 										className={`mt-3 inline-flex rounded-full px-3 py-1 text-xs font-semibold ${style.accent}`}
 									>
-										{sheet.data.length} opportunities
+										{sheet.groups.length} groups
 									</span>
 								</a>
 							);
@@ -339,23 +362,24 @@ export default async function SamOpportunitiesPage() {
 											{sheet.name}
 										</p>
 										<p className="mt-2 text-sm text-slate-600">
-											{sheet.data.length} opportunities in this service area
+											{sheet.groups.length} opportunity groups across {sheet.data.length} SAM notices
 										</p>
 									</div>
 									<div className={`rounded-full px-4 py-2 text-sm font-semibold ${style.accent}`}>
-										{sheet.data.length} listings
+										{sheet.groups.length} groups
 									</div>
 								</div>
 							</div>
 
 							<div className="mt-6">
-							{sheet.data.length === 0 ? (
+							{sheet.groups.length === 0 ? (
 								<div className="rounded-[1.5rem] bg-[rgba(250,245,237,0.82)] px-5 py-8 text-sm text-slate-600">
 									No active opportunities were returned for this category right now.
 								</div>
 							) : (
 								<div className="grid gap-4">
-									{sheet.data.map((opp) => {
+									{sheet.groups.map((group) => {
+										const opp = group.primaryNotice;
 										const primaryPoc =
 											opp.pointOfContact?.find((contact) => contact.type === 'primary') ??
 											opp.pointOfContact?.[0];
@@ -369,10 +393,23 @@ export default async function SamOpportunitiesPage() {
 											opp.type,
 											opp.baseType,
 										);
+										const relatedNotices = [...group.notices].sort((left, right) => {
+											const actionability = sortByPreferredActionability(left, right);
+											if (actionability !== 0) return actionability;
+
+											const leftPosted = left.postedDate
+												? new Date(left.postedDate).getTime()
+												: Number.NEGATIVE_INFINITY;
+											const rightPosted = right.postedDate
+												? new Date(right.postedDate).getTime()
+												: Number.NEGATIVE_INFINITY;
+
+											return rightPosted - leftPosted;
+										});
 
 										return (
 											<article
-												key={`${sheet.name}-${opp.noticeId}`}
+												key={`${sheet.name}-${group.groupKey}`}
 												className="rounded-[1.5rem] border border-slate-900/10 bg-[rgba(250,245,237,0.82)] p-5"
 											>
 												<div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
@@ -576,6 +613,120 @@ export default async function SamOpportunitiesPage() {
 														</a>
 													) : null}
 												</div>
+
+												{relatedNotices.length > 1 ? (
+													<div className="mt-5 rounded-[1.35rem] border border-slate-900/10 bg-white/70 p-4">
+														<div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+															<div>
+																<p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
+																	Related SAM notices
+																</p>
+																<p className="mt-1 text-sm text-slate-600">
+																	This procurement has {relatedNotices.length} related notices on SAM.gov.
+																</p>
+															</div>
+														</div>
+														<div className="mt-4 grid gap-3">
+															{relatedNotices.map((notice) => {
+																const relatedGuidance = getNoticeGuidance(
+																	notice.type,
+																	notice.baseType,
+																);
+																const relatedDeadlinePassed = isPastDate(
+																	notice.responseDeadLine,
+																);
+
+																return (
+																	<div
+																		key={notice.noticeId}
+																		className="rounded-2xl border border-slate-900/10 bg-[rgba(250,245,237,0.72)] p-4"
+																	>
+																		<div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+																			<div>
+																				<div className="flex flex-wrap gap-2">
+																					<span className="rounded-full bg-slate-900 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-white">
+																						{notice.type ?? 'Opportunity'}
+																					</span>
+																					<span
+																						className={`rounded-full px-3 py-1 text-xs font-semibold ${relatedGuidance.statusClassName}`}
+																					>
+																						{relatedGuidance.statusLabel}
+																					</span>
+																					{notice.noticeId === opp.noticeId ? (
+																						<span className="rounded-full bg-orange-100 px-3 py-1 text-xs font-semibold text-orange-800">
+																							Primary card
+																						</span>
+																					) : null}
+																				</div>
+																				<p className="mt-3 text-sm leading-6 text-slate-700">
+																					{relatedGuidance.typeMeaning}
+																				</p>
+																			</div>
+																			<div className="grid gap-2 text-sm text-slate-600 sm:min-w-64">
+																				<div>
+																					<span className="font-semibold text-slate-900">
+																						Notice ID:
+																					</span>{' '}
+																					{notice.noticeId}
+																				</div>
+																				<div>
+																					<span className="font-semibold text-slate-900">
+																						Solicitation:
+																					</span>{' '}
+																					{notice.solicitationNumber ?? 'Not listed'}
+																				</div>
+																				<div>
+																					<span className="font-semibold text-slate-900">
+																						Posted:
+																					</span>{' '}
+																					{formatDate(notice.postedDate)}
+																				</div>
+																				<div>
+																					<span className="font-semibold text-slate-900">
+																						Response deadline:
+																					</span>{' '}
+																					<span
+																						className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${
+																							relatedDeadlinePassed
+																								? 'bg-red-100 text-red-800'
+																								: 'bg-emerald-100 text-emerald-800'
+																						}`}
+																					>
+																						{relatedDeadlinePassed
+																							? `Passed ${formatDate(notice.responseDeadLine)}`
+																							: formatDate(notice.responseDeadLine)}
+																					</span>
+																				</div>
+																			</div>
+																		</div>
+																		<div className="mt-4 flex flex-col gap-3 sm:flex-row">
+																			{notice.uiLink ? (
+																				<a
+																					href={notice.uiLink}
+																					target="_blank"
+																					rel="noreferrer"
+																					className="rounded-full bg-slate-950 px-5 py-3 text-center text-sm font-semibold text-white hover:bg-slate-800"
+																				>
+																					View this notice on SAM.gov
+																				</a>
+																			) : null}
+																			{notice.additionalInfoLink ? (
+																				<a
+																					href={notice.additionalInfoLink}
+																					target="_blank"
+																					rel="noreferrer"
+																					className="rounded-full border border-slate-900/10 bg-white px-5 py-3 text-center text-sm font-semibold text-slate-800 hover:bg-slate-50"
+																				>
+																					Additional info
+																				</a>
+																			) : null}
+																		</div>
+																	</div>
+																);
+															})}
+														</div>
+													</div>
+												) : null}
 											</article>
 										);
 									})}
